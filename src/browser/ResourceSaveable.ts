@@ -1,4 +1,10 @@
-import { Disposable, Event, MaybePromise, Resource } from '@theia/core/lib/common';
+import {
+  Disposable,
+  Event,
+  MaybePromise,
+  MessageService,
+  Resource
+} from '@theia/core/lib/common';
 import {Saveable, WidgetManager} from "@theia/core/lib/browser";
 import { DIRTY_CLASS, TreeEditorWidget } from './theia-tree-editor-widget';
 import * as _ from 'lodash';
@@ -21,14 +27,15 @@ export class ResourceSaveable implements Saveable {
 
   constructor(private resource: Resource,
               private getData: () => any,
-              @unmanaged() protected readonly widgetManager: WidgetManager) {}
+              @unmanaged() private readonly widgetManager: WidgetManager,
+              @unmanaged() private readonly messageService: MessageService) {}
 
   save(): MaybePromise<void> {
     return this.onSave(this.getData()).then(this.doSave)
   }
 
   doSave = (content: string): MaybePromise<void> => {
-    if ( this.resource.saveContents !== undefined ) {
+    if ( this.resource !== undefined && this.resource.saveContents !== undefined ) {
       return this.resource.saveContents(content, { encoding: 'UTF-8' })
         .then(() => {
           this.dirty = false;
@@ -37,7 +44,7 @@ export class ResourceSaveable implements Saveable {
           widget.title.className = widget.title.className.replace(dirtyClass, '');
       });
     } else {
-      console.warn('resource cannot save');
+      this.messageService.error('Save Error: Undefined Resource');
       return undefined;
     }
   }
